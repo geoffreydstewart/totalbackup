@@ -1,0 +1,263 @@
+<?xml version="1.0"?>
+<!--
+This is the build.xml run by AntInstaller for the Total Backup Application
+
+The "depends" attribute for targets was not used, since it's not recommended for logging
+back to the ant gui installer.
+-->
+
+<project name="Installation Build"  default="default"  basedir="${basedir}">
+
+	<!-- this is required to pick up the properties generated during the install pages -->
+	<property file="${basedir}/ant.install.properties"/>
+	<property name="coreInstallDir" value="${installDir}/totalbackupcore"/>
+
+	<target name="default" depends="">
+		<echo message="Installation Directory is set to: [${installDir}]"/>
+		<echo message="JAVA_HOME is set to [${javaHome}]"/>
+
+		<!--mkdir dir="${basedir}/temp"/-->
+		<unzip src="totalbackupcore.zip" dest="${installDir}"/>
+
+		<chmod file="${coreInstallDir}/bin/startbackup.sh" perm="774"/>
+		<chmod file="${coreInstallDir}/bin/startdistribute.sh" perm="774"/>
+
+		<!-- path convert the distributionSourceOne property -->
+		<path id="distributionSourceOnePath">
+			<pathelement location="${distributionSourceOne}"/>
+		</path>
+		<pathconvert targetos="unix" property="distributionSourceOnePathUnix" refid="distributionSourceOnePath">
+			<map from="${distributionSourceOnePath}" to="${distributionSourceOnePathUnix}"/>
+		</pathconvert>
+
+		<!-- path convert the distributionSourceTwo property -->
+		<path id="distributionSourceTwoPath">
+			<pathelement location="${distributionSourceTwo}"/>
+		</path>
+		<pathconvert targetos="unix" property="distributionSourceTwoPathUnix" refid="distributionSourceTwoPath">
+			<map from="${distributionSourceTwoPath}" to="${distributionSourceTwoPathUnix}"/>
+		</pathconvert>
+
+		<!-- path convert the distributionSourceThree property -->
+		<path id="distributionSourceThreePath">
+			<pathelement location="${distributionSourceThree}"/>
+		</path>
+		<pathconvert targetos="unix" property="distributionSourceThreePathUnix" refid="distributionSourceThreePath">
+			<map from="${distributionSourceThreePath}" to="${distributionSourceThreePathUnix}"/>
+		</pathconvert>
+
+		<!-- path convert the backupSourceOne property -->
+	    <path id="backupSourceOnePath">
+	    	<pathelement location="${backupSourceOne}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceOnePathUnix" refid="backupSourceOnePath">
+	    	<map from="${backupSourceOnePath}" to="${backupSourceOnePathUnix}"/>
+	    </pathconvert>
+
+		<!-- path convert the backupSourceTwo property -->
+	    <path id="backupSourceTwoPath">
+	    	<pathelement location="${backupSourceTwo}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceTwoPathUnix" refid="backupSourceTwoPath">
+	    	<map from="${backupSourceTwoPath}" to="${backupSourceTwoPathUnix}"/>
+	    </pathconvert>
+		
+		<!-- path convert the backupSourceThree property -->
+	    <path id="backupSourceThreePath">
+	    	<pathelement location="${backupSourceThree}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceThreePathUnix" refid="backupSourceThreePath">
+	    	<map from="${backupSourceThreePath}" to="${backupSourceThreePathUnix}"/>
+	    </pathconvert>		
+
+		<!-- path convert the backupSourceFour property -->
+	    <path id="backupSourceFourPath">
+	    	<pathelement location="${backupSourceFour}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceFourPathUnix" refid="backupSourceFourPath">
+	    	<map from="${backupSourceFourPath}" to="${backupSourceFourPathUnix}"/>
+	    </pathconvert>		
+
+		<!-- path convert the backupSourceFive property -->
+	    <path id="backupSourceFivePath">
+	    	<pathelement location="${backupSourceFive}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceFivePathUnix" refid="backupSourceFivePath">
+	    	<map from="${backupSourceFivePath}" to="${backupSourceFivePathUnix}"/>
+	    </pathconvert>	
+		
+		<!-- path convert the backupSourceSix property -->
+	    <path id="backupSourceSixPath">
+	    	<pathelement location="${backupSourceSix}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceSixPathUnix" refid="backupSourceSixPath">
+	    	<map from="${backupSourceSixPath}" to="${backupSourceSixPathUnix}"/>
+	    </pathconvert>	
+		
+		<!-- path convert the backupSourceSeven property -->
+	    <path id="backupSourceSevenPath">
+	    	<pathelement location="${backupSourceSeven}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceSevenPathUnix" refid="backupSourceSevenPath">
+	    	<map from="${backupSourceSevenPath}" to="${backupSourceSevenPathUnix}"/>
+	    </pathconvert>	
+		
+		<!-- path convert the backupSourceEight property -->
+	    <path id="backupSourceEightPath">
+	    	<pathelement location="${backupSourceEight}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceEightPathUnix" refid="backupSourceEightPath">
+	    	<map from="${backupSourceEightPath}" to="${backupSourceEightPathUnix}"/>
+	    </pathconvert>			
+		
+		<!-- path convert the backupSourceNine property -->
+	    <path id="backupSourceNinePath">
+	    	<pathelement location="${backupSourceNine}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceNinePathUnix" refid="backupSourceNinePath">
+	    	<map from="${backupSourceNinePath}" to="${backupSourceNinePathUnix}"/>
+	    </pathconvert>			
+		
+		<!-- path convert the backupSourceTen property -->
+	    <path id="backupSourceTenPath">
+	    	<pathelement location="${backupSourceTen}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceTenPathUnix" refid="backupSourceTenPath">
+	    	<map from="${backupSourceTenPath}" to="${backupSourceTenPathUnix}"/>
+	    </pathconvert>			
+		
+		<!-- path convert the backupSourceEleven property -->
+	    <path id="backupSourceElevenPath">
+	    	<pathelement location="${backupSourceEleven}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceElevenPathUnix" refid="backupSourceElevenPath">
+	    	<map from="${backupSourceElevenPath}" to="${backupSourceElevenPathUnix}"/>
+	    </pathconvert>			
+		
+		<!-- path convert the backupSourceTwelve property -->
+	    <path id="backupSourceTwelvePath">
+	    	<pathelement location="${backupSourceTwelve}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupSourceTwelvePathUnix" refid="backupSourceTwelvePath">
+	    	<map from="${backupSourceTwelvePath}" to="${backupSourceTwelvePathUnix}"/>
+	    </pathconvert>
+		
+		<!-- path convert the backupTargetOne property -->
+		<path id="backupTargetOnePath">
+	    	<pathelement location="${backupTargetOne}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupTargetOnePathUnix" refid="backupTargetOnePath">
+	    	<map from="${backupTargetOnePath}" to="${backupTargetOnePathUnix}"/>
+	    </pathconvert>
+
+		<!-- path convert the backupTargetTwo property -->
+		<path id="backupTargetTwoPath">
+	    	<pathelement location="${backupTargetTwo}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupTargetTwoPathUnix" refid="backupTargetTwoPath">
+	    	<map from="${backupTargetTwoPath}" to="${backupTargetTwoPathUnix}"/>
+	    </pathconvert>
+		
+		<!-- path convert the backupTargetThree property -->
+		<path id="backupTargetThreePath">
+	    	<pathelement location="${backupTargetThree}"/>
+	    </path>
+		<pathconvert targetos="unix" property="backupTargetThreePathUnix" refid="backupTargetThreePath">
+	    	<map from="${backupTargetThreePath}" to="${backupTargetThreePathUnix}"/>
+	    </pathconvert>
+		
+		<replace file="${coreInstallDir}/totalbackup.properties" summary="true">
+			<replacefilter token="@distributionSourceOne@" value="${distributionSourceOnePathUnix}"/>
+			<replacefilter token="@distributionSourceTwo@" value="${distributionSourceTwoPathUnix}"/>
+			<replacefilter token="@distributionSourceThree@" value="${distributionSourceThreePathUnix}"/>
+
+			<replacefilter token="@backupSourceOne@" value="${backupSourceOnePathUnix}"/>
+			<replacefilter token="@backupSourceTwo@" value="${backupSourceTwoPathUnix}"/>
+			<replacefilter token="@backupSourceThree@" value="${backupSourceThreePathUnix}"/>
+			<replacefilter token="@backupSourceFour@" value="${backupSourceFourPathUnix}"/>
+			<replacefilter token="@backupSourceFive@" value="${backupSourceFivePathUnix}"/>
+			<replacefilter token="@backupSourceSix@" value="${backupSourceSixPathUnix}"/>
+			<replacefilter token="@backupSourceSeven@" value="${backupSourceSevenPathUnix}"/>
+			<replacefilter token="@backupSourceEight@" value="${backupSourceEightPathUnix}"/>
+			<replacefilter token="@backupSourceNine@" value="${backupSourceNinePathUnix}"/>
+			<replacefilter token="@backupSourceTen@" value="${backupSourceTenPathUnix}"/>
+			<replacefilter token="@backupSourceEleven@" value="${backupSourceElevenPathUnix}"/>
+			<replacefilter token="@backupSourceTwelve@" value="${backupSourceTwelvePathUnix}"/>
+			
+			<replacefilter token="@backupTargetOne@" value="${backupTargetOnePathUnix}"/>
+			<replacefilter token="@backupTargetTwo@" value="${backupTargetTwoPathUnix}"/>
+			<replacefilter token="@backupTargetThree@" value="${backupTargetThreePathUnix}"/>
+			
+			<replacefilter token="@sshBackupTargetPasswordOne@" value="${sshBackupTargetPasswordOne}"/>
+			<replacefilter token="@sshBackupTargetPasswordTwo@" value="${sshBackupTargetPasswordTwo}"/>
+			<replacefilter token="@sshBackupTargetPasswordThree@" value="${sshBackupTargetPasswordThree}"/>
+		</replace>
+
+		<!--replace file="${coreInstallDir}/totalbackup.properties" replacefilterfile="${basedir}/ant.install.properties" summary="true"/-->
+		<replace file="${coreInstallDir}/totalbackup.properties" propertyFile="${basedir}/ant.install.properties" summary="true">
+			<replacefilter token="@distributionSourceAliasOne@" property="distributionSourceAliasOne"/>
+			<replacefilter token="@distributionSourceAliasTwo@" property="distributionSourceAliasTwo"/>
+			<replacefilter token="@distributionSourceAliasThree@" property="distributionSourceAliasThree"/>
+
+			<replacefilter token="@distributionSourcesString@" property="distributionSourcesString"/>
+
+			<replacefilter token="@distributeBackupFilesOnly@" property="distributeBackupFilesOnly"/>
+
+			<replacefilter token="@backupSourceAliasOne@" property="backupSourceAliasOne"/>
+			<replacefilter token="@backupSourceAliasTwo@" property="backupSourceAliasTwo"/>
+			<replacefilter token="@backupSourceAliasThree@" property="backupSourceAliasThree"/>
+			<replacefilter token="@backupSourceAliasFour@" property="backupSourceAliasFour"/>
+			<replacefilter token="@backupSourceAliasFive@" property="backupSourceAliasFive"/>
+			<replacefilter token="@backupSourceAliasSix@" property="backupSourceAliasSix"/>
+			<replacefilter token="@backupSourceAliasSeven@" property="backupSourceAliasSeven"/>
+			<replacefilter token="@backupSourceAliasEight@" property="backupSourceAliasEight"/>
+			<replacefilter token="@backupSourceAliasNine@" property="backupSourceAliasNine"/>
+			<replacefilter token="@backupSourceAliasTen@" property="backupSourceAliasTen"/>
+			<replacefilter token="@backupSourceAliasEleven@" property="backupSourceAliasEleven"/>
+			<replacefilter token="@backupSourceAliasTwelve@" property="backupSourceAliasTwelve"/>
+			
+			<replacefilter token="@backupSourcesString@" property="backupSourcesString"/>
+			
+			<replacefilter token="@backupTargetAliasOne@" property="backupTargetAliasOne"/>
+			<replacefilter token="@backupTargetAliasTwo@" property="backupTargetAliasTwo"/>
+			<replacefilter token="@backupTargetAliasThree@" property="backupTargetAliasThree"/>
+			
+			<replacefilter token="@backupTargetsString@" property="backupTargetsString"/>
+			
+			<replacefilter token="@alternateLocationBackup@" property="alternateLocationBackup"/>
+			<replacefilter token="@alternateLocationCleanup@" property="alternateLocationCleanup"/>
+			<replacefilter token="@numSavedBackupFiles@" property="numSavedBackupFiles"/>
+
+			<replacefilter token="@sshBackupTargetAliasOne@" property="sshBackupTargetAliasOne"/>
+			<replacefilter token="@sshBackupTargetHostOne@" property="sshBackupTargetHostOne"/>
+			<replacefilter token="@sshBackupTargetPortOne@" property="sshBackupTargetPortOne"/>
+			<replacefilter token="@sshBackupTargetUsernameOne@" property="sshBackupTargetUsernameOne"/>
+			<replacefilter token="@sshBackupDirOne@" property="sshBackupTargetDirOne"/>
+
+			<replacefilter token="@sshBackupTargetAliasTwo@" property="sshBackupTargetAliasTwo"/>
+			<replacefilter token="@sshBackupTargetHostTwo@" property="sshBackupTargetHostTwo"/>
+			<replacefilter token="@sshBackupTargetPortTwo@" property="sshBackupTargetPortTwo"/>
+			<replacefilter token="@sshBackupTargetUsernameTwo@" property="sshBackupTargetUsernameTwo"/>
+			<replacefilter token="@sshBackupDirTwo@" property="sshBackupTargetDirTwo"/>
+
+			<replacefilter token="@sshBackupTargetAliasThree@" property="sshBackupTargetAliasThree"/>
+			<replacefilter token="@sshBackupTargetHostThree@" property="sshBackupTargetHostThree"/>
+			<replacefilter token="@sshBackupTargetPortThree@" property="sshBackupTargetPortThree"/>
+			<replacefilter token="@sshBackupTargetUsernameThree@" property="sshBackupTargetUsernameThree"/>
+			<replacefilter token="@sshBackupDirThree@" property="sshBackupTargetDirThree"/>
+
+			<replacefilter token="@sshBackupTargetsString@" property="sshBackupTargetsString"/>
+			
+			<replacefilter token="@sshLocationBackup@" property="sshLocationBackup"/>
+			<replacefilter token="@sshLocationCleanup@" property="sshLocationCleanup"/>
+			<replacefilter token="@numSavedSshBackupFiles@" property="numSavedSshBackupFiles"/>
+			
+		</replace>		
+		
+		<replace dir="${coreInstallDir}/bin" propertyFile="${basedir}/ant.install.properties" summary="true">
+			<replacefilter token="@javaHome@" property="javaHome"/>
+		</replace>
+		
+	</target>
+
+</project>

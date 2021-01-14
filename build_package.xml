@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="BuildTotalBackupPackage" default="buildPackage" basedir=".">
+	<!-- ================================================= -->
+	<!--               PROPERTIES DECLARATION              -->
+	<!-- ================================================= -->    
+	<property file="build_package.properties"/>
+	<property environment="env"/>
+
+	<path id="antinstaller.classpath">
+		<fileset dir="${basedir}/resources/antinstaller-beta0.8">
+			<include name="ant-installer-ext.jar"/>
+			<include name="ant-installer.jar"/>
+		</fileset>
+	</path>  
+	<!-- ================================================= -->
+	<!--          EXTERNAL ANT TASK DEFINITIONS            -->
+	<!-- ================================================= -->    
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties"    
+			 classpath="${ant-contrib.classpath}"/>
+
+	<taskdef name="installer" 
+			 classname="org.tp23.antinstaller.taskdefs.Installer"
+			 classpathref="antinstaller.classpath"/>							 
+
+	<!-- ================================================= -->
+	<!--                    EXPOSED ACTIONS                -->
+	<!-- ================================================= -->
+	<target name="buildPackageNoPostClean" 
+			description="Build Total Backup Package"        
+			depends="initProperties, cleanPrePackage, buildTotalBackup"/>
+
+	<target name="buildPackage" 
+			description="Build Total Backup Package"        
+			depends="initProperties, cleanPrePackage, buildTotalBackup, cleanPostPackage"/>
+	
+	<!-- ================================================= -->
+	<!--                    INIT ACTIONS                   -->
+	<!-- ================================================= -->
+	<target name="initProperties">
+		<if><not><isset property="package.deploy.dir"/></not>
+			<then>
+				<property name="package.deploy.dir" value="packages"/>
+			</then>
+		</if>
+		<property name="package.tmp.dir" value="${package.deploy.dir}/temp" />
+		<property name="package.lib.dir" value="${package.tmp.dir}/lib" />
+		<property name="package.installer.dir" value="${package.tmp.dir}/install/${total.backup.filename}"/>
+		<property name="package.self.extract.dir" value="${package.installer.dir}/jar"/>
+		<property name="total.backup.core.dir" value="${package.tmp.dir}/corezipcontents/totalbackupcore"/> 
+	</target>  
+	<!-- ================================================= -->
+	<!--                    BUILD ACTIONS                  -->
+	<!-- ================================================= -->    
+	<target name="buildTotalBackup" depends="buildJars, deployTotalBackupResources, packageTotalBackup"/>
+
+	<!-- ================================================= -->
+	<!--                   CLEAN ACTIONS                   -->
+	<!-- ================================================= -->    
+	<target name="cleanPrePackage">
+		<delete dir="${package.deploy.dir}"/>
+		<delete dir="classfiles"/>
+	</target>
+    
+	<target name="cleanPostPackage">
+		<delete dir="${package.tmp.dir}"/>
+	</target>
+
+	<!-- ================================================= -->
+	<!--                   DEPLOY ACTIONS                  -->
+	<!-- ================================================= -->
+	<!-- create the jars -->
+	<target name="buildJars" depends="compileJava" description="creates the ant jars">
+		<mkdir dir="${package.lib.dir}"/>
+		<jar jarfile="${package.lib.dir}/${ant.tasks.jar.file.name}" basedir="classfiles">
+			<fileset dir="classfiles"/>
+		</jar>
+	</target>
+
+	<!-- compile the java classes -->
+	<target name="compileJava" description="compiles the source code">
+		<mkdir dir="classfiles"/>
+
+		<javac srcdir="javafiles" destdir="classfiles">
+			<classpath>
+				<fileset dir="${env.ANT_HOME}/lib">
+					<include name="**/*.jar"/>
+					<include name="**/*.zip"/>
+				</fileset>
+			</classpath>         
+		</javac>
+	</target>
+
+	<!-- deploy Resources -->
+	<target name="deployTotalBackupResources">
+		<!-- main build file -->
+		<copy file="build.xml" todir="${total.backup.core.dir}/bin"/>
+		<!-- main properties template file -->
+		<copy file="templates/totalbackup.properties" todir="${total.backup.core.dir}"/>
+
+		<!-- application scripts -->
+		<copy todir="${total.backup.core.dir}/bin">
+			<fileset dir="templates/bin" casesensitive="yes"/>
+		</copy>
+		<!-- application resources -->
+		<!-- Ant -->
+		<unzip src="${total.backup.resources.ant}" dest="${total.backup.core.dir}/3rdparties"/>
+		<!-- Ant-contrib -->
+		<copy file="${total.backup.resources.ant-contrib}" tofile="${total.backup.core.dir}/3rdparties/ant-contrib/ant-contrib.jar"/>
+		<!-- Jsch -->
+		<copy file="${total.backup.resources.jsch}" todir="${total.backup.core.dir}/3rdparties/${ant.dir.name}/lib"/>
+		<!-- gsc-lib -->
+		<copy file="${package.lib.dir}/${ant.tasks.jar.file.name}" todir="${total.backup.core.dir}/lib"/>
+		<!-- deploy version file -->
+		<echo message="totalbackup.version=${total.backup.version}" file="${total.backup.core.dir}/version.txt"/>
+	</target>
+
+	<!-- ================================================= -->
+	<!--                PACKAGE ACTIONS                    -->
+	<!-- ================================================= -->  
+	<target name="packageTotalBackup" depends="zipTotalBackup, createSelfExtractJar, createInstallZip"/>
+
+	<target name="zipTotalBackup">
+		<zip basedir="${package.tmp.dir}/corezipcontents" 
+			 destfile="${package.tmp.dir}/${total.backup.core.zip}"/>
+			 
+	</target>
+
+	<target name="createSelfExtractJar">
+		<mkdir dir="${package.self.extract.dir}"/>
+
+        <installer file="${package.self.extract.dir}/${total.backup.self.extract.jar}" compress="true"
+				extractType="SelfExtractor"
+				installConfig="ant-installer/installer/antinstall-config.xml"
+				buildFile="ant-installer/installer/build.xml"
+				antInstallLib="${basedir}/resources/antinstaller-beta0.8"
+				antLib="${env.ANT_HOME}/lib"
+				validateConfig="true"
+				failOnError="true"
+				icons="eclipse">
+			<fileset dir="${package.tmp.dir}" includes="${total.backup.core.zip}"/>
+			<fileset dir="${basedir}/ant-installer/installclasspath" includes="resources/*"/>
+		</installer>
+	</target>
+
+	<target name="createInstallZip">
+	    <copy todir="${package.installer.dir}">
+		    <fileset dir="templates/scripts" casesensitive="yes"/>
+	    </copy>
+		
+		<replace dir="${package.installer.dir}" propertyFile="build_package.properties" summary="true">
+			<replacefilter token="@version@" property="total.backup.version"/>
+		</replace>
+		
+		<zip basedir="${package.tmp.dir}/install" 
+			 destfile="${package.deploy.dir}/${total.backup.zip}"/>
+	</target>
+</project>
+

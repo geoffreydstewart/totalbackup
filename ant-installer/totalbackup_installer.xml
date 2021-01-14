@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+
+This Ant script is used to package parts of the demo app to create an installer
+
+the selfextract target shows an example of creating a self extracting jar for the demo app
+
+run with ...
+
+ant -buildfile build-demo.xml
+
+-->
+<project name="Create Demo Installer Zip Build"  default="selfextract"  basedir=".">
+
+    <!-- Default location in installed tree -->
+    <property name="installDir" location="${basedir}"/>
+	<property environment="env"/>
+	
+    <path id="taskdef.cp">
+	  <fileset dir="${installDir}/../resources/antinstaller-beta0.8">
+        <include name="ant-installer-ext.jar"/>
+        <include name="ant-installer.jar"/>
+      </fileset>
+	</path>
+
+	<target name="selfextract">
+		<echo message="Building Total Backup Installer self extracting jar file."/>
+    	<echo message=""/>
+		<taskdef 
+			name="installer" 
+			classname="org.tp23.antinstaller.taskdefs.Installer"
+			classpathref="taskdef.cp"/>
+        <installer file="${installDir}/artifacts/totalbackup-installer.jar" compress="true"
+				extractType="SelfExtractor"
+				installConfig="installer/antinstall-config.xml"
+				buildFile="installer/build.xml"
+				antInstallLib="${installDir}/../resources/antinstaller-beta0.8"
+				antLib="${env.ANT_HOME}/lib"
+				validateConfig="true"
+				failOnError="true"
+				icons="eclipse">
+			<fileset dir="${installDir}/artifacts" includes="totalbackupcore.zip"/>
+			<fileset dir="installclasspath" includes="resources/*"/>
+		</installer>
+	</target>
+
+	<target name="clean">
+		<echo message="Cleaning Total Backup Installer artifacts"/>
+    	<echo message=""/>
+		<delete file="${installDir}/artifacts/totalbackup-installer.jar" failonerror="false"/>
+	</target>
+</project>

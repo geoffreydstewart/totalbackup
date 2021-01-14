@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="TotalBackup" default="Backup" basedir=".">
+	<!-- ================================================= -->
+	<!--            CUSTOM CLASSPATH DECLARATION           -->
+	<!-- ================================================= -->
+	<path id="customtasks-classpath">
+		<fileset dir="../lib">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+
+	<!-- ================================================= -->
+	<!--          EXTERNAL ANT TASK DEFINITIONS            -->
+	<!-- ================================================= -->
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties"
+                   classpath="../3rdparties/ant-contrib/ant-contrib.jar"/>
+	<taskdef name="porttest" classname="org.gds.totalbackup.CaPortTester" classpathref="customtasks-classpath"/>
+	<taskdef name="cleanup" classname="org.gds.totalbackup.CaFileCleanup" classpathref="customtasks-classpath"/>
+	<taskdef name="getremotesshfilelist" classname="org.gds.totalbackup.CaGetRemoteSshFileList" classpathref="customtasks-classpath"/>
+	<taskdef name="javacreatedirectory" classname="org.gds.totalbackup.CaJavaCreateDirectory" classpathref="customtasks-classpath"/>
+	<taskdef name="resolvebackupfile" classname="org.gds.totalbackup.CaResolveBackupFile" classpathref="customtasks-classpath"/>
+
+	<!-- ================================================= -->
+	<!--               PROPERTIES DECLARATION              -->
+	<!-- ================================================= -->
+	<var file="../totalbackup.properties"/>
+	<property name="error.output.dir" value="tmp"/>
+	<property name="error.output.file" value="${error.output.dir}/errors.log"/>
+
+	<!-- ================================================= -->
+	<!--                    EXPOSED ACTIONS                -->
+	<!-- ================================================= -->
+	<!-- Exposed action names must start with upper case letter -->
+	<target name="Backup"
+        description="Compress source directories and backup to local, or networked locations, also over SSH if required."
+        depends="infoProject, initPlatform, createBackupFile, testBackupFile, copyBackupFiles, sshBackupFiles, archiveLogFile, logProcessMessages"/>
+    <target name="Distribute"
+        description="Distribute already prepared backup files to multiple local or networked locations.  This decouples the preparation and distribution of files."
+		depends="infoProject, initPlatform, distributeBackupFiles, archiveLogFile, logProcessMessages"/>
+
+	<!-- ================================================= -->
+	<!--                    INIT ACTIONS                   -->
+	<!-- ================================================= -->
+	<!-- Initialize the platform -->
+	<target name="initPlatform">
+		<!-- Take the date and time of the backup -->
+		<tstamp>
+			<format property="current.date" pattern="MMMM-d-yyyy" locale="en"/>
+		</tstamp>
+		<condition property="platform.windows">
+			<os family="windows"/>
+		</condition>
+		<condition property="platform.unix">
+			<os family="unix"/>
+		</condition>
+		<delete dir="${error.output.dir}"/>
+		<mkdir dir="${error.output.dir}"/>
+	</target>
+	<!-- ================================================= -->
+	<!--                    CHECK ACTIONS                  -->
+	<!-- ================================================= -->
+	<!-- test port -->
+	<target name="checkPort">
+		<porttest
+      		portNumber="${param.port}"
+      		hostName="${param.host}"
+      		connectionType="${connection.type}"/>
+	</target>
+	<!-- ================================================= -->
+	<!--                   EXECUTE ACTIONS                 -->
+	<!-- ================================================= -->
+	<!-- Copy file to local location -->
+	<target name="createBackupFile">
+		<property name="working.dir" value="${backup.working.dir}"/>
+		<available file="${working.dir}" property="backup.working.dir.available"/>
+		<if>
+			<equals arg1="${backup.working.dir.available}" arg2="true"/>
+			<then>
+				<delete includeemptydirs="true">
+					<fileset dir="${backup.working.dir}" includes="**/*"/>
+				</delete>
+			</then>
+			<else>
+				<mkdir dir="${backup.working.dir}"/>
+			</else>
+		</if>
+		<foreach
+			list="${backup.sources}"
+			target="retrieveBackupSource"
+			param="backup.source.label"
+			inheritall="true">
+		</foreach>
+		<property name="target.init.dir" value="${backup.target.init.dir}"/>
+		<available file="${target.init.dir}" property="backup.target.init.dir.available"/>
+		<if>
+			<equals arg1="${backup.target.init.dir.available}" arg2="true"/>
+			<then>
+				<echo>
+          			Deleting the contents of ${backup.target.init.dir}
+        		</echo>
+				<delete includeemptydirs="true">
+					<fileset dir="${backup.target.init.dir}" includes="**/*"/>
+				</delete>
+			</then>
+			<else>
+				<mkdir dir="${backup.target.init.dir}"/>
+			</else>
+		</if>
+		<echo>
+      		Preparing Single Backup package - creating file ${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip
+    	</echo>
+		<zip destfile="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip">
+			<zipfileset dir="${backup.working.dir}" prefix="${backup.filename.prefix}-${current.date}"/>
+		</zip>
+	</target>
+
+	<target name="retrieveBackupSource">
+		<propertycopy name="backup.source.dir" from="backup.source.${backup.source.label}.dir" />
+		<property name="backup.source" value="${backup.source.dir}"/>
+		<available file="${backup.source}" property="backup.source.dir.available"/>
+
+		<if>
+			<equals arg1="${backup.source.dir.available}" arg2="true"/>
+			<then>
+				<echo>
+          			Creating zip file ${backup.working.dir}/${backup.source.label}.zip from: ${backup.source.dir}
+        		</echo>
+				<trycatch property="error.message.createzip">
+					<try>
+						<zip destfile="${backup.working.dir}/${backup.source.label}.zip">
+							<zipfileset dir="${backup.source.dir}"  prefix="${backup.source.label}"/>
+						</zip>
+					</try>
+					<catch>
+						<echo>
+              				An ERROR occurred: ${error.message.createzip}
+            			</echo>
+						<echo file="${error.output.file}" append="true" message="${error.message.createzip}"/>
+					</catch>
+				</trycatch>
+			</then>
+			<else>
+				<echo file="${error.output.file}" append="true" message="An ERROR occured:  The backup source path ${backup.source.dir} was not available."/>
+				<echo>
+          			An ERROR occurred:  The backup source path ${backup.source.dir} was not available
+      			</echo>
+			</else>
+		</if>
+	</target>
+
+  <target name="distributeBackupFiles">
+		<if>
+			<equals arg1="${distribution.backup.files.only}" arg2="true"/>
+			<then>
+				<echo>
+          			Preparing to Distribute existing backup files to other locations
+                </echo>
+				<foreach
+                    list="${distribution.sources}"
+                    target="distributeBackupFile"
+                    param="distribution.source.label"
+                    inheritall="true">
+				</foreach>
+			</then>
+			<else>
+				<echo>
+        			  Bypassing Distribute to other locations
+      	</echo>
+			</else>
+		</if>
+	</target>
+
+	<target name="distributeBackupFile">
+		<propertycopy name="distribution.source.dir" from="distribution.source.${distribution.source.label}.dir" />
+		<property name="distribution.source" value="${distribution.source.dir}"/>
+
+		<resolvebackupfile backupFileSourcePath="${distribution.source}"/>
+		<property name="backup.file.path" value="${resolvedBackupFilePath}"/>
+		<if>
+			<equals arg1="${backup.file.path}" arg2="nofile"/>
+			<then>
+				<echo file="${error.output.file}" append="true" message="An ERROR occured:  There was no backup file at the path ${distribution.source}."/>
+				<echo>
+        				An ERROR occurred:  There was no backup file at the path ${distribution.source}
+    		</echo>
+			</then>
+			<else>
+				<echo>
+          			Preparing to Distribute the file ${backup.file.path}
+                </echo>
+				<foreach
+                    list="${backup.targets}"
+                    target="distributeBackupFileFromSource"
+                    param="backup.target.label"
+                    inheritall="true">
+				</foreach>
+			</else>
+		</if>
+	</target>
+
+	<target name="distributeBackupFileFromSource">
+		<propertycopy name="backup.source.file.path" from="backup.file.path" />
+		<property name="backup.file" value="${backup.source.file.path}"/>
+		<propertycopy name="backup.target.dir" from="backup.target.${backup.target.label}.dir" />
+		<property name="backup.target" value="${backup.target.dir}"/>
+		<available file="${backup.target}" property="backup.target.dir.available"/>
+
+		<if>
+			<equals arg1="${backup.target.dir.available}" arg2="true"/>
+			<then>
+				<echo>
+          			Copying zip file ${backup.file} to dir: ${backup.target.dir}
+        		</echo>
+				<copy file="${backup.file}" todir="${backup.target.dir}"/>
+				<antcall target="cleanupCopiedBackupFiles"/>
+			</then>
+			<else>
+				<dirname property="backup.target.parent.dir" file="${backup.target.dir}"/>
+				<javacreatedirectory directory="${backup.target.dir}" parentDirectory="${backup.target.parent.dir}"/>
+				<property name="directory.created" value="${directoryCreated}"/>
+
+				<if>
+					<equals arg1="${directory.created}" arg2="true"/>
+					<then>
+						<echo>
+            				Copying zip file ${backup.file} to dir: ${backup.target.dir}
+          	</echo>
+						<copy file="${backup.file}" todir="${backup.target.dir}"/>
+						<antcall target="cleanupCopiedBackupFiles"/>
+					</then>
+					<else>
+						<echo file="${error.output.file}" append="true" message="An ERROR occured:  The backup target path ${backup.target.dir} was not available, and could not be created."/>
+						<echo>
+            				An ERROR occurred:  The backup target path ${backup.target.dir} was not available, and could not be created
+        				</echo>
+					</else>
+				</if>
+			</else>
+		</if>
+	</target>
+
+	<target name="copyBackupFiles">
+		<if>
+			<equals arg1="${alternate.location.enable}" arg2="true"/>
+			<then>
+				<echo>
+          			Preparing to make the Backup to alternate locations
+                </echo>
+				<foreach
+                    list="${backup.targets}"
+                    target="deployBackupFile"
+                    param="backup.target.label"
+                    inheritall="true">
+				</foreach>
+			</then>
+			<else>
+				<echo>
+        			Bypassing Backup to alternate locations
+      			</echo>
+			</else>
+		</if>
+	</target>
+
+	<target name="deployBackupFile">
+		<propertycopy name="backup.target.dir" from="backup.target.${backup.target.label}.dir" />
+		<property name="backup.target" value="${backup.target.dir}"/>
+		<available file="${backup.target}" property="backup.target.dir.available"/>
+
+		<if>
+			<equals arg1="${backup.target.dir.available}" arg2="true"/>
+			<then>
+				<echo>
+          			Copying zip file ${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip to dir: ${backup.target.dir}
+        		</echo>
+				<copy file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" todir="${backup.target.dir}"/>
+				<antcall target="cleanupCopiedBackupFiles"/>
+			</then>
+			<else>
+				<dirname property="backup.target.parent.dir" file="${backup.target.dir}"/>
+				<javacreatedirectory directory="${backup.target.dir}" parentDirectory="${backup.target.parent.dir}"/>
+				<property name="directory.created" value="${directoryCreated}"/>
+
+				<if>
+					<equals arg1="${directory.created}" arg2="true"/>
+					<then>
+						<echo>
+            				Copying zip file ${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip to dir: ${backup.target.dir}
+          				</echo>
+						<copy file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" todir="${backup.target.dir}"/>
+						<antcall target="cleanupCopiedBackupFiles"/>
+					</then>
+					<else>
+						<echo file="${error.output.file}" append="true" message="An ERROR occured:  The backup target path ${backup.target.dir} was not available, and could not be created."/>
+						<echo>
+            				An ERROR occurred:  The backup target path ${backup.target.dir} was not available, and could not be created
+        				</echo>
+					</else>
+				</if>
+			</else>
+		</if>
+	</target>
+
+	<target name="cleanupCopiedBackupFiles">
+		<if>
+			<equals arg1="${alternate.location.cleanup.enable}" arg2="true"/>
+			<then>
+				<echo>
+          			Cleaning up files from dir: ${backup.target.dir} while saving ${alternate.location.cleanup.remainingfiles}
+        		</echo>
+				<cleanup fileCleanupLocation="${backup.target.dir}" numberRemainingFiles="${alternate.location.cleanup.remainingfiles}"/>
+			</then>
+			<else>
+				<echo>
+      				Bypassing Backup to alternate locations
+      			</echo>
+			</else>
+		</if>
+	</target>
+
+	<target name="sshBackupFiles">
+		<if>
+			<equals arg1="${ssh.location.enable}" arg2="true"/>
+			<then>
+				<echo>
+          			Preparing to make the Backup to SSH locations
+        		</echo>
+				<foreach
+                    list="${ssh.backup.targets}"
+                    target="deploySSHBackupFile"
+                    param="ssh.target.label"
+                    inheritall="true">
+				</foreach>
+			</then>
+			<else>
+				<echo>
+        			Bypassing Backup to SSH locations
+      			</echo>
+			</else>
+		</if>
+	</target>
+
+	<target name="deploySSHBackupFile">
+		<propertycopy name="ssh.target.host" from="ssh.backup.target.${ssh.target.label}.host" />
+		<property name="ssh.host" value="${ssh.target.host}"/>
+		<propertycopy name="ssh.target.portnumber" from="ssh.backup.target.${ssh.target.label}.portnumber" />
+		<property name="ssh.portnumber" value="${ssh.target.portnumber}"/>
+		<propertycopy name="ssh.target.username" from="ssh.backup.target.${ssh.target.label}.username" />
+		<property name="ssh.username" value="${ssh.target.username}"/>
+		<propertycopy name="ssh.target.password" from="ssh.backup.target.${ssh.target.label}.password" />
+		<property name="ssh.password" value="${ssh.target.password}"/>
+		<propertycopy name="ssh.target.dir" from="ssh.backup.target.${ssh.target.label}.dir" />
+		<property name="ssh.dir" value="${ssh.target.dir}"/>
+
+		<!-- TODO: test for dir available -->
+
+		<echo>
+            Initiating SSH Backup
+        </echo>
+
+		<trycatch property="error.message.ssh.all">
+			<try>
+
+				<antcall target="checkPort">
+					<param name="param.host" value="${ssh.host}"/>
+					<param name="param.port" value="${ssh.portnumber}"/>
+					<param name="connection.type" value="client"/>
+				</antcall>
+
+				<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="mkdir -p ${ssh.dir}"/>
+
+				<trycatch property="error.message.sshcopy.attempt1">
+					<try>
+						<scp todir="${ssh.username}:${ssh.password}@${ssh.host}:${ssh.target.dir}" file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" port="${ssh.portnumber}" trust="yes"/>
+					</try>
+					<catch>
+						<echo>
+              				An error occurred during the first transfer attempt.  Retrying...
+            			</echo>
+						<sleep seconds="10"/>
+						<trycatch property="error.message.sshcopy.attempt2">
+							<try>
+								<scp todir="${ssh.username}:${ssh.password}@${ssh.host}:${ssh.target.dir}" file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" port="${ssh.portnumber}" trust="yes"/>
+							</try>
+							<catch>
+								<echo>
+    		      					An ERROR occurred: ${error.message.sshcopy.attempt2}
+    		    				</echo>
+								<echo file="${error.output.file}" append="true" message="${error.message.sshcopy.attempt2}"/>
+								<sleep seconds="10"/>
+								<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="rm -rf ${ssh.target.dir}/${backup.filename.prefix}-${current.date}.zip" failonerror="false"/>
+							</catch>
+						</trycatch>
+					</catch>
+				</trycatch>
+
+				<antcall target="cleanupRemoteSshFiles"/>
+
+			</try>
+			<catch>
+				<echo>
+	      			An ERROR occurred: ${error.message.ssh.all}
+	    		</echo>
+				<echo file="${error.output.file}" append="true" message="${error.message.ssh.all}"/>
+			</catch>
+		</trycatch>
+
+	</target>
+
+	<target name="cleanupRemoteSshFiles">
+		<if>
+			<equals arg1="${ssh.location.cleanup.enable}" arg2="true"/>
+			<then>
+				<echo>
+          			Preparing to cleanup Remote ssh files
+        		</echo>
+				<!-- Remote execute 'ls -rt' to list files in order from oldest to newest -->
+				<!-- This is consistent with the method sortFileArrayByModifiedDate in the CaFileCleanup class -->
+				<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="ls -rt ${ssh.dir}/*.zip" output="${backup.working.dir}/ssh_dir_listing.log"/>
+				<getremotesshfilelist sshExecOutputFile="${backup.working.dir}/ssh_dir_listing.log" numberRemainingFiles="${ssh.location.cleanup.remainingfiles}"/>
+				<property name="remote.files" value="${remoteFiles}"/>
+				<if>
+					<equals arg1="${remote.files}" arg2="nofiles"/>
+					<then>
+						<echo>
+              				There are no files to cleanup
+            			</echo>
+					</then>
+					<else>
+						<foreach
+            list="${remote.files}"
+            target="cleanupRemoteFile"
+            param="remote.filename"
+            inheritall="true">
+						</foreach>
+					</else>
+				</if>
+			</then>
+			<else>
+				<echo>
+        			Bypassing cleanup of Remote ssh files
+      			</echo>
+			</else>
+		</if>
+	</target>
+
+	<target name="cleanupRemoteFile">
+		<echo>
+      		Attempting to delete file: ${remote.filename} via sshexec
+    	</echo>
+		<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="rm -rf ${remote.filename}" failonerror="false"/>
+	</target>
+
+	<target name="archiveLogFile">
+		<if>
+			<equals arg1="${use.jenkins}" arg2="false"/>
+			<then>
+				<echo>
+		      		Archiving log file...
+		    	</echo>
+				<available file="${archive.logfile.dir}" property="archive.logfile.dir.available"/>
+				<if>
+					<equals arg1="${archive.logfile.dir.available}" arg2="true"/>
+					<then>
+						<!-- do nothing, the directory exists -->
+					</then>
+					<else>
+						<mkdir dir="${archive.logfile.dir}"/>
+					</else>
+				</if>
+				<copy file="totalbackup.log" tofile="${archive.logfile.dir}/totalbackup-${current.date}.log"/>
+			</then>
+		</if>
+	</target>
+
+	<target name="logProcessMessages">
+		<available file="${error.output.file}" property="errors.available"/>
+		<if>
+			<equals arg1="${errors.available}" arg2="true"/>
+			<then>
+				<!--delete dir="${error.output.dir}"/-->
+				<if>
+					<equals arg1="${use.jenkins}" arg2="false"/>
+					<then>
+						<echo message="BUILD FAILED.  Review this log file to determine the cause" file="${archive.logfile.dir}/totalbackup-${current.date}.log" append="yes"/>
+					</then>
+				</if>
+				<fail message="ERRORS have occured in the process.  Review this log file to determine the cause."/>
+			</then>
+			<else>
+				<!--delete dir="${error.output.dir}"/-->
+				<if>
+					<equals arg1="${use.jenkins}" arg2="false"/>
+					<then>
+						<echo message="BUILD SUCCESSFUL" file="${archive.logfile.dir}/totalbackup-${current.date}.log" append="yes"/>
+					</then>
+				</if>
+			</else>
+		</if>
+	</target>
+
+	<!-- ================================================= -->
+	<!--                       LOG ACTIONS                 -->
+	<!-- ================================================= -->
+	<!-- Display environment info -->
+	<target name="infoProject">
+		<echo message="============================================="/>
+		<echo message="    Environment                              "/>
+		<echo message="Project directory..: ${basedir}"/>
+		<echo message="Java version.......: ${java.version}"/>
+		<echo message="Java home..........: ${java.home}"/>
+		<echo message="Ant version........: ${ant.version}"/>
+		<echo message="Operating System...: ${os.name}"/>
+		<echo message="User home..........: ${user.home}"/>
+		<echo message="============================================="/>
+		<!-- echoproperties/ -->
+	</target>
+
+	<target name="testBackupFile">
+		<unzip src="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip"
+		    dest="${error.output.dir}">
+		</unzip>
+		<foreach
+			list="${backup.sources}"
+			target="testBackupSource"
+			param="backup.source.label"
+			inheritall="true">
+		</foreach>
+	</target>
+
+	<target name="testBackupSource">
+		<property name="backup.source" value="${error.output.dir}/${backup.filename.prefix}-${current.date}/${backup.source.label}.zip"/>
+		<unzip src="${backup.source}"
+			dest="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}">
+		</unzip>
+	</target>
+
+</project>

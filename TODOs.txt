@@ -1,0 +1,69 @@
+General Tasks
+
+  website
+  - update the support page with a quick how to
+  - add email address for viewvc and webpage
+
+Current version
+
+  backend engine items
+  - multi instance
+
+  packaging
+  - new linux install with secure apache install
+  - install dev env on media1
+  - install dev env on koala
+
+  gui installer
+  - add jenkins integration option 
+  - tool tips
+  - refactor (reorganize and cleanup) build target
+  - change install log filename
+  - review demo installer to see if there's anything cool to implement.
+
+Install fields
+
+C:\working\temp\installdir_tst\totalbackup
+C:\Program Files\Java\jre6
+C:\Documents and Settings\geoff\My Documents
+C:\working\temp\misc_photos or \\angela-pc\share\backupsourcetest
+C:\working\temp\installdir_tst\backups1
+C:\working\temp\installdir_tst\backups2 or \\angela-pc\share\backuptargettest
+
+
+New version
+
+  general points
+  - web application running the scheduler ui, very similar to jenkins but simpler
+  - spring mvc framework
+
+  starting points
+  - get local jenkins running for examples
+  - basic spring mvc app running (tutorial)
+
+  other points
+  - see proposed folder structure for project setup
+  - need to encrypt passwords in the property file
+
+
+  new project folder structure
+	projects
+	  duplicato
+	    condiviso
+	    moduli
+	      backupengine
+	      ui
+	or 
+	  sauvegarde
+	    partage
+	    ..
+	    ..
+  
+ SVN notes
+ 
+   change repo URL
+   - C:\working\dev\projects>svn switch --relocate http://70.72.130.252/repos/projects http://70.72.143.57/repos/projects
+   
+   create branch
+   - svn copy http://192.168.1.14/repos/projects/totalbackup/dev http://192.168.1.14/repos/projects/totalbackup/0.2 -m "Create the 0.2 release branch"
+   

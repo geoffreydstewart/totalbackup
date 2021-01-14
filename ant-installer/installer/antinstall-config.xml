@@ -1,0 +1,873 @@
+<?xml version="1.0"?>
+<!DOCTYPE installer PUBLIC "-//tp23 //DTD Ant Installer Config//EN" "http://antinstaller.sf.net/dtd/antinstall-config-0.8.dtd" [
+
+<!--  common entities -->
+<!ENTITY numbers "^[0-9]*$">
+<!ENTITY anyNotNull "^.+$">
+]>
+
+
+<installer
+			ui="swing,text"
+			verbose="false"
+			lookAndFeel="org.tp23.jgoodies.plaf.plastic.PlasticXPLookAndFeel"
+			name="Totalbackup Installer"
+			windowIcon="/resources/gkmain_inv.png"
+			defaultImageResource="/resources/greens.png"
+			minJavaVersion="1.4"
+			wide="545:295">
+
+	<!--  Intro Page  -->
+	<page
+			type="input"
+			name="intro"
+			displayText="Welcome to the Totalbackup Installer program"
+			imageResource="/resources/greens.png">
+		<comment
+				displayText="This will install the Totalbackup application."
+				bold="true"/>
+		<comment
+				displayText="Please press Next when you are ready to continue."/>
+	</page>
+
+	<!--  License Page  -->
+	<page
+			type="license"
+			name="license"
+			displayText="License Conditions"
+			resource="/resources/GPL.txt"
+			imageResource="/resources/rockstiles.png">
+	</page>
+
+	<page
+			type="input"
+			name="properties"
+			displayText="Required install options">
+			
+		<comment
+				displayText="These paths are required to complete the installation."/>
+				
+		<directory
+				property="installDir"
+				defaultValue="/usr/local/totalbackup"
+				defaultValueWin="${env.ProgramFiles}\totalbackup"
+				displayText="Select the target installation directory."
+				create="true"/>
+		<directory
+				property="javaHome"
+				defaultValue="/usr/local/jdk1.6.0_20"
+				defaultValueWin="${env.ProgramFiles}\Java\jre6"
+				displayText="Select the JAVA_HOME directory."
+				checkExists="true"/>
+	</page>
+
+	<!--  Distribute Backup File Sources Only Option Page  -->
+	<page
+			type="input"
+			name="distribute backup files only option"
+			displayText="Distribute Backup File Sources Only Option">
+		<checkbox
+				property="distributeBackupFilesOnly"
+				displayText="Only configure distribution of backup files"
+				defaultValue="false"
+				force="false"
+				explanatoryText="Enable this option to configure distribution of backup files only.  No actual backup files will be prepared."/>
+	</page>
+
+	<!--  Number Distribute Sources Page  -->
+	<page
+			type="input"
+			name="numberDistributeSources"
+			displayText="Number of Backup File Distribution Sources"
+			ifProperty="(${distributeBackupFilesOnly}=true)">
+		<select
+				property="numDistributionSources"
+				defaultValue="1"
+				displayText="Choose the number of distribution sources"
+				explanatoryText="This field determines the number of backup file distribution sources.">
+			<option text="1" value="1"/>
+			<option text="2" value="2"/>
+			<option text="3" value="3"/>
+		</select>
+	</page>
+
+	<!--  Distribution Source One Page  -->
+	<page
+			type="input"
+			name="distributionSource1"
+			displayText="Distribution Source 1 location details"
+			ifProperty="(${distributeBackupFilesOnly}=true) AND (${numDistributionSources}=1) OR (${numDistributionSources}=2) OR (${numDistributionSources}=3)">
+		<text
+				property="distributionSourceAliasOne"
+				defaultValue="distSource1"
+				displayText="Enter the 1st distribution source alias (no spaces)."
+				explanatoryText="This alias will be used to identify the 1st distribution source directory containing a backup file."/>
+
+		<directory
+				property="distributionSourceOne"
+				defaultValue="/myopt/totalbackup/totalbackup/totalbackupcore/backupfile"
+				defaultValueWin="C:/opt/totalbackup/totalbackup/totalbackupcore/backupfile"
+				displayText="Select the 1st distribution source directory."
+				create="false"/>
+
+	</page>
+
+	<!--  Distribution Source Two Page  -->
+	<page
+			type="input"
+			name="distributionSource2"
+			displayText="Distribution Source 2 location details"
+			ifProperty="(${numDistributionSources}=2) OR (${numDistributionSources}=3)">
+		<text
+				property="distributionSourceAliasTwo"
+				defaultValue="distSource2"
+				displayText="Enter the 2nd distribution source alias (no spaces)."
+				explanatoryText="This alias will be used to identify the 2nd distribution source directory containing a backup file."/>
+
+		<directory
+				property="distributionSourceTwo"
+				defaultValue="/myopt/totalbackup/totalbackup/totalbackupcore/backupfile"
+				defaultValueWin="C:/opt/totalbackup/totalbackup/totalbackupcore/backupfile"
+				displayText="Select the 2nd distribution source directory."
+				create="false"/>
+
+	</page>
+
+	<!--  Distribution Source Three Page  -->
+	<page
+			type="input"
+			name="distributionSource3"
+			displayText="Distribution Source 3 location details"
+			ifProperty="(${numDistributionSources}=3)">
+		<text
+				property="distributionSourceAliasThree"
+				defaultValue="distSource3"
+				displayText="Enter the 3rd distribution source alias (no spaces)."
+				explanatoryText="This alias will be used to identify the 3rd distribution source directory containing a backup file."/>
+
+		<directory
+				property="distributionSourceThree"
+				defaultValue="/myopt/totalbackup/totalbackup/totalbackupcore/backupfile"
+				defaultValueWin="C:/opt/totalbackup/totalbackup/totalbackupcore/backupfile"
+				displayText="Select the 3rd distribution source directory."
+				create="false"/>
+
+	</page>
+
+	<!--  Number Backup Sources Page  -->
+	<page
+			type="input"
+			name="backup sources"
+			displayText="Number of Backup Sources"
+			ifProperty="(${distributeBackupFilesOnly}=false)">
+		<validated
+			property="numBackupSources"
+			defaultValue="1"
+			regex="&numbers;"
+			displayText="Enter the number of backup sources."
+			explanatoryText="This field determines the number of locations to backup."/>
+		
+	</page>
+
+	<!--  Backup Source One Page  -->
+	<page
+			type="input"
+			name="backupSource1"
+			displayText="Backup source 1 location details"
+			ifProperty="(${distributeBackupFilesOnly}=false) AND (${numBackupSources}==1) OR (${numBackupSources}==2) OR (${numBackupSources}==3) OR (${numBackupSources}==4)
+						OR (${numBackupSources}==5) OR (${numBackupSources}==6) OR (${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasOne"
+			defaultValue="documents1"
+			displayText="Enter the 1st backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 1st backup source directory."/>
+		
+		<directory
+				property="backupSourceOne"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 1st backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Two Page  -->
+	<page
+			type="input"
+			name="backupSource2"
+			displayText="Backup source 2 location details"
+			ifProperty="(${numBackupSources}==2) OR (${numBackupSources}==3) OR (${numBackupSources}==4)
+						OR (${numBackupSources}==5) OR (${numBackupSources}==6) OR (${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasTwo"
+			defaultValue="documents2"
+			displayText="Enter the 2nd backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 2nd backup source directory."/>
+		
+		<directory
+				property="backupSourceTwo"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 2nd backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Three Page  -->
+	<page
+			type="input"
+			name="backupSource3"
+			displayText="Backup source 3 location details"
+			ifProperty="(${numBackupSources}==3) OR (${numBackupSources}==4)
+						OR (${numBackupSources}==5) OR (${numBackupSources}==6) OR (${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasThree"
+			defaultValue="documents3"
+			displayText="Enter the 3rd backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 3rd backup source directory."/>
+		
+		<directory
+				property="backupSourceThree"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 3rd backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Four Page  -->
+	<page
+			type="input"
+			name="backupSource4"
+			displayText="Backup source 4 location details"
+			ifProperty="(${numBackupSources}==4)
+						OR (${numBackupSources}==5) OR (${numBackupSources}==6) OR (${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasFour"
+			defaultValue="documents4"
+			displayText="Enter the 4th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 4th backup source directory."/>
+		
+		<directory
+				property="backupSourceFour"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 4th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Five Page  -->
+	<page
+			type="input"
+			name="backupSource5"
+			displayText="Backup source 5 location details"
+			ifProperty="(${numBackupSources}==5) OR (${numBackupSources}==6) OR (${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasFive"
+			defaultValue="documents5"
+			displayText="Enter the 5th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 5th backup source directory."/>
+		
+		<directory
+				property="backupSourceFive"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 5th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Six Page  -->
+	<page
+			type="input"
+			name="backupSource6"
+			displayText="Backup source 6 location details"
+			ifProperty="(${numBackupSources}==6) OR (${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasSix"
+			defaultValue="documents6"
+			displayText="Enter the 6th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 6th backup source directory."/>
+		
+		<directory
+				property="backupSourceSix"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 6th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Seven Page  -->
+	<page
+			type="input"
+			name="backupSource7"
+			displayText="Backup source 7 location details"
+			ifProperty="(${numBackupSources}==7) OR (${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasSeven"
+			defaultValue="documents7"
+			displayText="Enter the 7th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 7th backup source directory."/>
+		
+		<directory
+				property="backupSourceSeven"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 7th backup source directory."
+				create="true"/>
+				
+	</page>
+
+	<!--  Backup Source Eight Page  -->
+	<page
+			type="input"
+			name="backupSource8"
+			displayText="Backup source 8 location details"
+			ifProperty="(${numBackupSources}==8)
+						OR (${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasEight"
+			defaultValue="documents8"
+			displayText="Enter the 8th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 8th backup source directory."/>
+		
+		<directory
+				property="backupSourceEight"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 8th backup source directory."
+				create="true"/>
+
+	</page>
+
+
+	<!--  Backup Source Nine Page  -->
+	<page
+			type="input"
+			name="backupSource9"
+			displayText="Backup source 9 location details"
+			ifProperty="(${numBackupSources}==9) OR (${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasNine"
+			defaultValue="documents9"
+			displayText="Enter the 9th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 9th backup source directory."/>
+		
+		<directory
+				property="backupSourceNine"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 9th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Ten Page  -->
+	<page
+			type="input"
+			name="backupSource10"
+			displayText="Backup source 10 location details"
+			ifProperty="(${numBackupSources}==10) OR (${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasTen"
+			defaultValue="documents10"
+			displayText="Enter the 10th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 10th backup source directory."/>
+		
+		<directory
+				property="backupSourceTen"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 10th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Eleven Page  -->
+	<page
+			type="input"
+			name="backupSource11"
+			displayText="Backup source 11 location details"
+			ifProperty="(${numBackupSources}==11) OR (${numBackupSources}==12)">
+		<text
+			property="backupSourceAliasEleven"
+			defaultValue="documents11"
+			displayText="Enter the 11th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 11th backup source directory."/>
+		
+		<directory
+				property="backupSourceEleven"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 11th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Backup Source Twelve Page  -->
+	<page
+			type="input"
+			name="backupSource12"
+			displayText="Backup source 12 location details"
+			ifProperty="${numBackupSources}==12">
+		<text
+			property="backupSourceAliasTwelve"
+			defaultValue="documents12"
+			displayText="Enter the 12th backup source alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 12th backup source directory."/>
+		
+		<directory
+				property="backupSourceTwelve"
+				defaultValue="/home/username"
+				defaultValueWin="${user.home}/My Documents"
+				displayText="Select the 12th backup source directory."
+				create="true"/>
+
+	</page>
+
+	<!--  Local (Network) Backup Targets Main Page  -->
+	<page
+			type="input"
+			name="localBackupTargets"
+			displayText="Local (Network) Backup Targets Main Page">
+		<checkbox
+				property="alternateLocationBackup"
+				displayText="Enable backup to local (network) locations"
+				defaultValue="true"
+				force="false"
+				explanatoryText="Enable this option to copy backups to devices on this computer or on the local network."/>
+		<checkbox
+				property="alternateLocationCleanup"
+				displayText="Enable automatic cleanup of these locations"
+				defaultValue="true"
+				force="false"
+				explanatoryText="Enable this option to perform a cleanup limiting the number of files being stored at these locations."/>
+		<validated
+			property="numSavedBackupFiles"
+			defaultValue="5"
+			regex="&numbers;"
+			displayText="Enter the number of backup files to save during cleanup:"/>
+	</page>
+
+	<!--  Number Backup Target Page  -->
+	<page
+			type="input"
+			name="numberBackupTargets"
+			displayText="Number of Backup Targets"
+			ifProperty="(${alternateLocationBackup}=true)">
+		<select
+				property="numBackupTargets"
+				defaultValue="1"
+				displayText="Choose the number of backup targets"
+				explanatoryText="This field determines the number of locations where to copy the backup.">
+			<option text="1" value="1"/>
+			<option text="2" value="2"/>
+			<option text="3" value="3"/>
+		</select>
+	</page>
+
+	<!--  Backup Target One Page  -->
+	<page
+			type="input"
+			name="backupTarget1"
+			displayText="Backup target 1 location details"
+			ifProperty="(${alternateLocationBackup}=true) AND (${numBackupTargets}=1) OR (${numBackupTargets}=2) OR (${numBackupTargets}=3)">
+		<text
+			property="backupTargetAliasOne"
+			defaultValue="backup1"
+			displayText="Enter the 1st backup target alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 1st backup target directory."/>
+		
+		<directory
+			property="backupTargetOne"
+			defaultValue="/data/backups"
+			defaultValueWin="C:/backups"
+			displayText="Select the 1st backup target directory."
+			create="true"/>
+
+	</page>
+
+	<!--  Backup Target Two Page  -->
+	<page
+			type="input"
+			name="backupTarget2"
+			displayText="Backup target 2 location details"
+			ifProperty="(${numBackupTargets}=2) OR (${numBackupTargets}=3)">
+		<text
+			property="backupTargetAliasTwo"
+			defaultValue="backup2"
+			displayText="Enter the 2nd backup target alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 2nd backup target directory."/>
+		
+		<directory
+			property="backupTargetTwo"
+			defaultValue="/data/backups"
+			defaultValueWin="C:/backups"
+			displayText="Select the 2nd backup target directory."
+			create="true"/>
+
+	</page>
+
+	<!--  Backup Target Three Page  -->
+	<page
+			type="input"
+			name="backupTarget3"
+			displayText="Backup target 3 location details"
+			ifProperty="(${numBackupTargets}=3)">
+		<text
+			property="backupTargetAliasThree"
+			defaultValue="backup3"
+			displayText="Enter the 3rd backup target alias (no spaces)."
+			explanatoryText="This alias will be used by the application to identify the 3rd backup target directory."/>
+		
+		<directory
+			property="backupTargetThree"
+			defaultValue="/data/backups"
+			defaultValueWin="C:/backups"
+			displayText="Select the 3rd backup target directory."
+			create="true"/>
+
+	</page>
+
+	<!--  Remote SSH Backup Targets Main Page  -->
+	<page
+			type="input"
+			name="sshBackupTargets"
+			displayText="Remote ssh Backup Targets Main Page">
+		<checkbox
+				property="sshLocationBackup"
+				displayText="Enable backup to remote ssh locations"
+				defaultValue="true"
+				force="false"
+				explanatoryText="Enable this option to copy backups to remotes machines running ssh."/>
+		<checkbox
+				property="sshLocationCleanup"
+				displayText="Enable automatic cleanup of these locations"
+				defaultValue="true"
+				force="false"
+				explanatoryText="Enable this option to perform a cleanup limiting the number of files being stored at these locations."/>
+		<validated
+			property="numSavedSshBackupFiles"
+			defaultValue="5"
+			regex="&numbers;"
+			displayText="Enter the number of backup files to save:"/>
+	</page>
+
+	<!--  Number ssh Backup Target Page  -->
+	<page
+			type="input"
+			name="numberSshBackupTargets"
+			displayText="Number of ssh Backup Targets"
+			ifProperty="(${sshLocationBackup}=true)">
+		<select
+				property="numSshBackupTargets"
+				defaultValue="1"
+				displayText="Choose the number of ssh backup targets"
+				explanatoryText="This field determines the number of ssh locations where to copy the backup.">
+			<option text="1" value="1"/>
+			<option text="2" value="2"/>
+			<option text="3" value="3"/>
+		</select>
+	</page>
+
+	<!--  ssh Backup Target One Page  -->
+	<page
+			type="input"
+			name="sshBackupTarget1"
+			displayText="SSH Backup target 1 location details"
+			ifProperty="(${sshLocationBackup}=true) AND (${numSshBackupTargets}=1) OR (${numSshBackupTargets}=2) OR (${numSshBackupTargets}=3)">
+		
+		<comment
+			displayText="These are the details for the 1st remote ssh host."
+			bold="true"/>
+		
+		<text
+			property="sshBackupTargetAliasOne"
+			defaultValue="sshbackup1"
+			displayText="Enter the 1st ssh backup target alias (no spaces)."/>
+
+		<text
+			property="sshBackupTargetHostOne"
+			defaultValue="host.domain.com"
+			displayText="Enter the 1st ssh backup target host or ip address."/>
+
+		<validated
+			property="sshBackupTargetPortOne"
+			defaultValue="22"
+			regex="&numbers;"
+			displayText="Enter the 1st ssh backup target port."/>
+
+		<text
+			property="sshBackupTargetUsernameOne"
+			defaultValue="user"
+			displayText="Enter the 1st ssh backup target username."/>
+
+		<password
+			property="sshBackupTargetPasswordOne"
+			regex="&anyNotNull;"
+			defaultValue="password69"
+			textMask="true"
+			displayText="Enter the 1st ssh backup target password."/>
+
+		<password-confirm
+			property="dummyValueOne"
+			origField="sshBackupTargetPasswordOne"
+			regex="&anyNotNull;"
+			defaultValue="password69"
+			textMask="true"
+			displayText="Confirm the 1st ssh backup target password."/>
+
+		<text
+			property="sshBackupTargetDirOne"
+			defaultValue="/data/backups"
+			displayText="Select the 1st ssh backup target dir."/>
+
+	</page>
+
+	<!--  ssh Backup Target Two Page  -->
+	<page
+			type="input"
+			name="sshBackupTarget2"
+			displayText="SSH Backup target 2 location details"
+			ifProperty="(${numSshBackupTargets}=2) OR (${numSshBackupTargets}=3)">
+		
+		<comment
+			displayText="These are the details for the 2nd remote ssh host."
+			bold="true"/>
+		
+		<text
+			property="sshBackupTargetAliasTwo"
+			defaultValue="sshbackup2"
+			displayText="Enter the 2nd ssh backup target alias (no spaces)."/>
+
+		<text
+			property="sshBackupTargetHostTwo"
+			defaultValue="host.domain.com"
+			displayText="Enter the 2nd ssh backup target host or ip address."/>
+
+		<validated
+			property="sshBackupTargetPortTwo"
+			defaultValue="22"
+			regex="&numbers;"
+			displayText="Enter the 2nd ssh backup target port."/>
+
+		<text
+			property="sshBackupTargetUsernameTwo"
+			defaultValue="user"
+			displayText="Enter the 2nd ssh backup target username."/>
+
+		<password
+			property="sshBackupTargetPasswordTwo"
+			regex="&anyNotNull;"
+			defaultValue="password69"
+			textMask="true"
+			displayText="Enter the 2nd ssh backup target password."/>
+
+		<password-confirm
+			property="dummyValueTwo"
+			origField="sshBackupTargetPasswordTwo"
+			regex="&anyNotNull;"
+			defaultValue="password69"
+			textMask="true"
+			displayText="Confirm the 2nd ssh backup target password."/>
+
+		<text
+			property="sshBackupTargetDirTwo"
+			defaultValue="/data/backups"
+			displayText="Select the 2nd ssh backup target dir."/>
+
+	</page>
+
+	<!--  ssh Backup Target Three Page  -->
+	<page
+			type="input"
+			name="sshBackupTarget3"
+			displayText="SSH Backup target 3 location details"
+			ifProperty="(${numSshBackupTargets}=3)">
+		
+		<comment
+			displayText="These are the details for the 3rd remote ssh host."
+			bold="true"/>
+		
+		<text
+			property="sshBackupTargetAliasThree"
+			defaultValue="sshbackup3"
+			displayText="Enter the 3rd ssh backup target alias (no spaces)."/>
+
+		<text
+			property="sshBackupTargetHostThree"
+			defaultValue="host.domain.com"
+			displayText="Enter the 3rd ssh backup target host or ip address."/>
+
+		<validated
+			property="sshBackupTargetPortThree"
+			defaultValue="22"
+			regex="&numbers;"
+			displayText="Enter the 3rd ssh backup target port."/>
+
+		<text
+			property="sshBackupTargetUsernameThree"
+			defaultValue="user"
+			displayText="Enter the 3rd ssh backup target username."/>
+
+		<password
+			property="sshBackupTargetPasswordThree"
+			regex="&anyNotNull;"
+			defaultValue="password69"
+			textMask="true"
+			displayText="Enter the 3rd ssh backup target password."/>
+
+		<password-confirm
+			property="dummyValueThree"
+			origField="sshBackupTargetPasswordThree"
+			regex="&anyNotNull;"
+			defaultValue="password69"
+			textMask="true"
+			displayText="Confirm the 3rd ssh backup target password."/>
+
+		<text
+			property="sshBackupTargetDirThree"
+			defaultValue="/data/backups"
+			displayText="Select the 3rd ssh backup target dir."/>
+
+	</page>
+
+	<!--  Second Last Page (mainly used for setting conditional properties ;-) -->
+	<page
+			type="input"
+			name="finishing"
+			displayText="Completing the Totalbackup Installer program">
+			
+		<comment
+				displayText="The installation options have been successfully completed.  Ensure the correct values were entered."/>
+		<comment
+				displayText="Please press Next to continue to the installation progress screen."
+				bold="true"/>
+
+		<conditional ifProperty="${numDistributionSources}==1">
+			<hidden property="distributionSourcesString"
+					value="${distributionSourceAliasOne}"/>
+		</conditional>
+
+		<conditional ifProperty="${numDistributionSources}==2">
+			<hidden property="distributionSourcesString"
+					value="${distributionSourceAliasOne},${distributionSourceAliasTwo}"/>
+		</conditional>
+
+		<conditional ifProperty="${numDistributionSources}==3">
+			<hidden property="distributionSourcesString"
+					value="${distributionSourceAliasOne},${distributionSourceAliasTwo},${distributionSourceAliasThree}"/>
+		</conditional>
+
+		<conditional ifProperty="${numBackupSources}==1">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==2">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==3">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==4">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour}"/>
+		</conditional>
+
+		<conditional ifProperty="${numBackupSources}==5">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==6">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==7">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix},${backupSourceAliasSeven}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==8">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix},${backupSourceAliasSeven},${backupSourceAliasEight}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==9">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix},${backupSourceAliasSeven},${backupSourceAliasEight},${backupSourceAliasNine}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==10">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix},${backupSourceAliasSeven},${backupSourceAliasEight},${backupSourceAliasNine},${backupSourceAliasTen}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==11">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix},${backupSourceAliasSeven},${backupSourceAliasEight},${backupSourceAliasNine},${backupSourceAliasTen},${backupSourceAliasEleven}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupSources}==12">
+			<hidden property="backupSourcesString" 
+					value="${backupSourceAliasOne},${backupSourceAliasTwo},${backupSourceAliasThree},${backupSourceAliasFour},${backupSourceAliasFive},${backupSourceAliasSix},${backupSourceAliasSeven},${backupSourceAliasEight},${backupSourceAliasNine},${backupSourceAliasTen},${backupSourceAliasEleven},${backupSourceAliasTwelve}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupTargets}==1">
+			<hidden property="backupTargetsString" 
+					value="${backupTargetAliasOne}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupTargets}==2">
+			<hidden property="backupTargetsString" 
+					value="${backupTargetAliasOne},${backupTargetAliasTwo}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numBackupTargets}==3">
+			<hidden property="backupTargetsString" 
+					value="${backupTargetAliasOne},${backupTargetAliasTwo},${backupTargetAliasThree}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numSshBackupTargets}==1">
+			<hidden property="sshBackupTargetsString" 
+					value="${sshBackupTargetAliasOne}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numSshBackupTargets}==2">
+			<hidden property="sshBackupTargetsString" 
+					value="${sshBackupTargetAliasOne},${sshBackupTargetAliasTwo}"/>
+		</conditional>
+		
+		<conditional ifProperty="${numSshBackupTargets}==3">
+			<hidden property="sshBackupTargetsString" 
+					value="${sshBackupTargetAliasOne},${sshBackupTargetAliasTwo},${sshBackupTargetAliasThree}"/>
+		</conditional>
+		
+	</page>
+
+	<!--  Progress Page  -->
+	<page
+			type="progress"
+			name="progress"
+			showTargets="true"
+			displayText="Installation progress"
+			target="default">
+	</page>
+</installer>
+
+
