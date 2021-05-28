@@ -4,6 +4,8 @@
 # Log file
 *.log
 
+packages
+
 # OSX noise
 .DS_Store
 
