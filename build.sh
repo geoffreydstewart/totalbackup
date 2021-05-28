@@ -2,6 +2,7 @@
 echo Building...
 ANT_OPTS=-Xmx384m
 #ANT_HOME=/usr/share/java/ant-1.8.4
+JAVA_HOME=/myopt/java/jdk1.8.0_162
 ANT_HOME=/opt/ant/apache-ant-1.9.2
 
 export ANT_HOME
