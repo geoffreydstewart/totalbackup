@@ -367,11 +367,11 @@
 					<param name="connection.type" value="client"/>
 				</antcall>
 
-				<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="mkdir -p ${ssh.dir}"/>
+				<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" keyfile="/Users/gstewart/.ssh/id_rsa" passphrase="geoff" command="mkdir -p ${ssh.dir}"/>
 
 				<trycatch property="error.message.sshcopy.attempt1">
 					<try>
-						<scp todir="${ssh.username}:${ssh.password}@${ssh.host}:${ssh.target.dir}" file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" port="${ssh.portnumber}" trust="yes"/>
+						<scp todir="${ssh.username}@${ssh.host}:${ssh.target.dir}" file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" port="${ssh.portnumber}" trust="yes" keyfile="/Users/gstewart/.ssh/id_rsa" passphrase="geoff"/>
 					</try>
 					<catch>
 						<echo>
@@ -380,7 +380,7 @@
 						<sleep seconds="10"/>
 						<trycatch property="error.message.sshcopy.attempt2">
 							<try>
-								<scp todir="${ssh.username}:${ssh.password}@${ssh.host}:${ssh.target.dir}" file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" port="${ssh.portnumber}" trust="yes"/>
+								<scp todir="${ssh.username}@${ssh.host}:${ssh.target.dir}" file="${backup.target.init.dir}/${backup.filename.prefix}-${current.date}.zip" port="${ssh.portnumber}" trust="yes" keyfile="/Users/gstewart/.ssh/id_rsa" passphrase="geoff"/>
 							</try>
 							<catch>
 								<echo>
@@ -388,7 +388,7 @@
     		    				</echo>
 								<echo file="${error.output.file}" append="true" message="${error.message.sshcopy.attempt2}"/>
 								<sleep seconds="10"/>
-								<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="rm -rf ${ssh.target.dir}/${backup.filename.prefix}-${current.date}.zip" failonerror="false"/>
+								<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" keyfile="/Users/gstewart/.ssh/id_rsa" passphrase="geoff" command="rm -rf ${ssh.target.dir}/${backup.filename.prefix}-${current.date}.zip" failonerror="false"/>
 							</catch>
 						</trycatch>
 					</catch>
@@ -416,7 +416,7 @@
         		</echo>
 				<!-- Remote execute 'ls -rt' to list files in order from oldest to newest -->
 				<!-- This is consistent with the method sortFileArrayByModifiedDate in the CaFileCleanup class -->
-				<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="ls -rt ${ssh.dir}/*.zip" output="${backup.working.dir}/ssh_dir_listing.log"/>
+				<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" keyfile="/Users/gstewart/.ssh/id_rsa" passphrase="geoff" command="ls -rt ${ssh.dir}/*.zip" output="${backup.working.dir}/ssh_dir_listing.log"/>
 				<getremotesshfilelist sshExecOutputFile="${backup.working.dir}/ssh_dir_listing.log" numberRemainingFiles="${ssh.location.cleanup.remainingfiles}"/>
 				<property name="remote.files" value="${remoteFiles}"/>
 				<if>
@@ -448,7 +448,7 @@
 		<echo>
       		Attempting to delete file: ${remote.filename} via sshexec
     	</echo>
-		<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" password="${ssh.password}" command="rm -rf ${remote.filename}" failonerror="false"/>
+		<sshexec host="${ssh.host}" port="${ssh.portnumber}" trust="true" username="${ssh.username}" keyfile="/Users/gstewart/.ssh/id_rsa" passphrase="geoff" command="rm -rf ${remote.filename}" failonerror="false"/>
 	</target>
 
 	<target name="archiveLogFile">
