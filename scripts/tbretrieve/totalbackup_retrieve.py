@@ -74,7 +74,7 @@ def load_config(config_path: str) -> tuple[SSHConfig, list[Deployment]]:
     ssh_config = SSHConfig(
         username=ssh_section.get("username"),
         private_key_path=expand_path(ssh_section["private_key_path"]),
-        host=ssh_section["host"],
+        host=ssh_section.get("host"),
         port=ssh_section.get("port", 22),
         key_passphrase_env=ssh_section.get("key_passphrase_env"),
         known_hosts=expand_path(ssh_section["known_hosts"])
@@ -231,6 +231,12 @@ def download_latest_archive(
     if not username:
         raise ValueError(
             f"No username configured for deployment "
+            f"{deployment.name}"
+        )
+    
+    if not host:
+        raise ValueError(
+            f"No host configured for deployment "
             f"{deployment.name}"
         )
 
