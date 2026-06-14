@@ -1,0 +1,17 @@
+[ssh]
+username = "opc"
+private_key_path = "<path_to_private_key_File>"
+host = "<host_or_ip>"
+port = 22
+key_passphrase_env = "TOTALBACKUP_KEY_PASSPHRASE"
+known_hosts = "~/.ssh/known_hosts"
+
+[[deployments]]
+name = "personal"
+remote_dir = "<path_to_remote_dir_1>"
+download_dir = "<path_local_download_dir_1>"
+
+[[deployments]]
+name = "work"
+remote_dir = "path_to_remote_dir_2"
+download_dir = "path_local_download_dir_2"
