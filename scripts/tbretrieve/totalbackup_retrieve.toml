@@ -5,6 +5,7 @@ host = "<host_or_ip>"
 port = 22
 key_passphrase_env = "TOTALBACKUP_KEY_PASSPHRASE"
 known_hosts = "~/.ssh/known_hosts"
+num_artifacts_to_retain = 3
 
 [[deployments]]
 name = "personal"

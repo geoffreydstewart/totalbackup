@@ -44,6 +44,7 @@ class SSHConfig:
     port: int
     key_passphrase_env: str | None
     known_hosts: str | None
+    num_artifacts_to_retain: int
 
 
 @dataclass
@@ -69,17 +70,44 @@ def load_config(config_path: str) -> tuple[SSHConfig, list[Deployment]]:
     with open(config_path, "rb") as f:
         data = tomllib.load(f)
 
-    ssh_section = data.get("ssh", {})
+    ssh_section = data.get("ssh")
+
+    if ssh_section is None:
+        raise ValueError("Missing required [ssh] section.")
+
+    required_fields = [
+        "host",
+        "private_key_path",
+    ]
+
+    missing_fields = [
+        field
+        for field in required_fields
+        if not ssh_section.get(field)
+    ]
+
+    if missing_fields:
+        raise ValueError(
+            "Missing required [ssh] field(s): "
+            + ", ".join(missing_fields)
+        )
 
     ssh_config = SSHConfig(
         username=ssh_section.get("username"),
-        private_key_path=expand_path(ssh_section["private_key_path"]),
-        host=ssh_section.get("host"),
+        private_key_path=expand_path(
+            ssh_section["private_key_path"]
+        ),
+        host=ssh_section["host"],
         port=ssh_section.get("port", 22),
-        key_passphrase_env=ssh_section.get("key_passphrase_env"),
-        known_hosts=expand_path(ssh_section["known_hosts"])
+        key_passphrase_env=ssh_section.get(
+            "key_passphrase_env"
+        ),
+        known_hosts=expand_path(
+            ssh_section["known_hosts"]
+        )
         if ssh_section.get("known_hosts")
         else None,
+        num_artifacts_to_retain=ssh_section.get("num_artifacts_to_retain", 3),
     )
 
     deployments = []
@@ -89,7 +117,9 @@ def load_config(config_path: str) -> tuple[SSHConfig, list[Deployment]]:
             Deployment(
                 name=item["name"],
                 remote_dir=item["remote_dir"],
-                download_dir=expand_path(item["download_dir"]),
+                download_dir=expand_path(
+                    item["download_dir"]
+                ),
                 username=item.get("username"),
                 host=item.get("host"),
                 port=item.get("port"),
@@ -292,6 +322,53 @@ def download_latest_archive(
             client.close()
 
 
+def cleanup_old_archives(
+    download_dir: str,
+    num_artifacts_to_retain: int,
+    dry_run: bool,
+) -> None:
+    """
+    Retain only the most recent N .zip files in download_dir.
+
+    Files are ordered by filesystem modification time (newest first).
+    If the number of zip files is less than or equal to the retention
+    count, no files are deleted.
+    """
+    if num_artifacts_to_retain < 1:
+        raise ValueError(
+            "num_artifacts_to_retain must be greater than 0"
+        )
+
+    archive_dir = Path(download_dir)
+
+    if not archive_dir.exists():
+        return
+
+    zip_files = [
+        p
+        for p in archive_dir.iterdir()
+        if p.is_file() and p.suffix.lower() == ".zip"
+    ]
+
+    if len(zip_files) <= num_artifacts_to_retain:
+        return
+
+    zip_files.sort(
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+    files_to_delete = zip_files[num_artifacts_to_retain:]
+
+    if dry_run:
+        for file_path in files_to_delete:
+            print(f"would delete {file_path}")
+        return
+
+    for file_path in files_to_delete:
+        file_path.unlink()
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -361,6 +438,12 @@ def main() -> int:
 
             if not success:
                 failures += 1
+
+            cleanup_old_archives(
+                deployment.download_dir,
+                ssh_config.num_artifacts_to_retain,
+                dry_run=args.dry_run,
+            )
 
         except Exception as exc:
             failures += 1
