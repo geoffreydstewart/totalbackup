@@ -112,9 +112,9 @@ def load_private_key(
     passphrase: str | None,
 ) -> paramiko.PKey:
     loaders = (
-        paramiko.Ed25519Key,
+        # paramiko.Ed25519Key,
         paramiko.RSAKey,
-        paramiko.ECDSAKey,
+        # paramiko.ECDSAKey,
     )
 
     last_error = None
