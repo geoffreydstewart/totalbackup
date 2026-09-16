@@ -6,6 +6,9 @@ totalbackup_retrieve.py
 Download the most recent .zip archive from one or more remote hosts using
 SSH/SFTP and a TOML configuration file.
 
+Optionally copy the most recent downloaded archive to a local destination
+and maintain a separate retention count for those local copies.
+
 Requirements:
     Python 3.11+
     paramiko
@@ -27,6 +30,7 @@ import tomllib
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 
 import paramiko
 
@@ -52,6 +56,9 @@ class Deployment:
     name: str
     remote_dir: str
     download_dir: str
+    local_copy_enabled: bool
+    copy_to_dir: str | None
+    local_copy_retention: int | None
     username: str | None
     host: str | None
     port: int | None
@@ -107,12 +114,47 @@ def load_config(config_path: str) -> tuple[SSHConfig, list[Deployment]]:
         )
         if ssh_section.get("known_hosts")
         else None,
-        num_artifacts_to_retain=ssh_section.get("num_artifacts_to_retain", 3),
+        num_artifacts_to_retain=ssh_section.get(
+            "num_artifacts_to_retain", 3
+        ),
     )
 
     deployments = []
 
     for item in data.get("deployments", []):
+        local_copy_enabled = item.get(
+            "local_copy_enabled", False
+        )
+
+        copy_to_dir = item.get("copy_to_dir")
+
+        if copy_to_dir:
+            copy_to_dir = expand_path(copy_to_dir)
+
+        local_copy_retention = item.get(
+            "local_copy_retention"
+        )
+
+        if local_copy_enabled:
+            if not copy_to_dir:
+                raise ValueError(
+                    f"Deployment '{item['name']}' has "
+                    "local_copy_enabled=true but no copy_to_dir."
+                )
+
+            if local_copy_retention is None:
+                raise ValueError(
+                    f"Deployment '{item['name']}' has "
+                    "local_copy_enabled=true but no "
+                    "local_copy_retention."
+                )
+
+            if local_copy_retention < 1:
+                raise ValueError(
+                    f"Deployment '{item['name']}' local_copy_retention "
+                    "must be greater than 0."
+                )
+
         deployments.append(
             Deployment(
                 name=item["name"],
@@ -120,6 +162,9 @@ def load_config(config_path: str) -> tuple[SSHConfig, list[Deployment]]:
                 download_dir=expand_path(
                     item["download_dir"]
                 ),
+                local_copy_enabled=local_copy_enabled,
+                copy_to_dir=copy_to_dir,
+                local_copy_retention=local_copy_retention,
                 username=item.get("username"),
                 host=item.get("host"),
                 port=item.get("port"),
@@ -127,7 +172,14 @@ def load_config(config_path: str) -> tuple[SSHConfig, list[Deployment]]:
         )
 
     if not deployments:
-        raise ValueError("No deployments defined in configuration.")
+        raise ValueError(
+            "No deployments defined in configuration."
+        )
+
+    if ssh_config.num_artifacts_to_retain < 1:
+        raise ValueError(
+            "num_artifacts_to_retain must be greater than 0."
+        )
 
     return ssh_config, deployments
 
@@ -142,9 +194,7 @@ def load_private_key(
     passphrase: str | None,
 ) -> paramiko.PKey:
     loaders = (
-        # paramiko.Ed25519Key,
         paramiko.RSAKey,
-        # paramiko.ECDSAKey,
     )
 
     last_error = None
@@ -171,6 +221,7 @@ def determine_passphrase(
 
     if env_name:
         value = os.environ.get(env_name)
+
         if value:
             return value
 
@@ -206,7 +257,10 @@ def create_client(
             paramiko.RejectPolicy()
         )
 
-    pkey = load_private_key(private_key_path, passphrase)
+    pkey = load_private_key(
+        private_key_path,
+        passphrase,
+    )
 
     client.connect(
         hostname=host,
@@ -246,7 +300,10 @@ def find_latest_zip(
     if not zip_files:
         return None
 
-    return max(zip_files, key=lambda item: item.st_mtime)
+    return max(
+        zip_files,
+        key=lambda item: item.st_mtime,
+    )
 
 
 def download_latest_archive(
@@ -263,7 +320,7 @@ def download_latest_archive(
             f"No username configured for deployment "
             f"{deployment.name}"
         )
-    
+
     if not host:
         raise ValueError(
             f"No host configured for deployment "
@@ -300,7 +357,10 @@ def download_latest_archive(
         )
 
         local_dir = Path(deployment.download_dir)
-        local_dir.mkdir(parents=True, exist_ok=True)
+        local_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
         local_file = local_dir / latest.filename
 
@@ -310,7 +370,10 @@ def download_latest_archive(
                 f"would download {remote_file}",
             )
 
-        sftp.get(remote_file, str(local_file))
+        sftp.get(
+            remote_file,
+            str(local_file),
+        )
 
         return (
             True,
@@ -322,47 +385,149 @@ def download_latest_archive(
             client.close()
 
 
+# ---------------------------------------------------------------------------
+# Local File Operations
+# ---------------------------------------------------------------------------
+
+
+def find_latest_local_zip(
+    directory: str,
+) -> Path | None:
+    """
+    Return the most recently modified ZIP file in directory.
+
+    Returns None if the directory does not exist or contains no ZIP files.
+    """
+
+    archive_dir = Path(directory)
+
+    if not archive_dir.exists():
+        return None
+
+    zip_files = [
+        path
+        for path in archive_dir.iterdir()
+        if path.is_file()
+        and path.suffix.lower() == ".zip"
+    ]
+
+    if not zip_files:
+        return None
+
+    return max(
+        zip_files,
+        key=lambda path: path.stat().st_mtime,
+    )
+
+
+def copy_latest_archive(
+    deployment: Deployment,
+    dry_run: bool,
+) -> tuple[bool, str]:
+    """
+    Find the most recent ZIP in the deployment's download directory
+    and copy it to the configured local copy destination.
+
+    The original filename is preserved.
+    """
+
+    if not deployment.local_copy_enabled:
+        return True, "local copy disabled"
+
+    if not deployment.copy_to_dir:
+        raise ValueError(
+            f"Deployment '{deployment.name}' has local copy enabled "
+            "but no copy_to_dir configured."
+        )
+
+    latest = find_latest_local_zip(
+        deployment.download_dir
+    )
+
+    if latest is None:
+        return (
+            True,
+            "no local zip available for copy",
+        )
+
+    destination_dir = Path(
+        deployment.copy_to_dir
+    )
+
+    destination_file = (
+        destination_dir / latest.name
+    )
+
+    if dry_run:
+        return (
+            True,
+            f"would copy {latest} to {destination_file}",
+        )
+
+    destination_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    shutil.copy2(
+        latest,
+        destination_file,
+    )
+
+    return (
+        True,
+        f"copied {latest.name} to {destination_dir}",
+    )
+
+
 def cleanup_old_archives(
-    download_dir: str,
+    directory: str,
     num_artifacts_to_retain: int,
     dry_run: bool,
 ) -> None:
     """
-    Retain only the most recent N .zip files in download_dir.
+    Retain only the most recent N .zip files in directory.
 
-    Files are ordered by filesystem modification time (newest first).
-    If the number of zip files is less than or equal to the retention
-    count, no files are deleted.
+    Files are ordered by filesystem modification time
+    (newest first).
+
+    If the number of ZIP files is less than or equal to
+    the retention count, no files are deleted.
     """
+
     if num_artifacts_to_retain < 1:
         raise ValueError(
-            "num_artifacts_to_retain must be greater than 0"
+            "Retention count must be greater than 0"
         )
 
-    archive_dir = Path(download_dir)
+    archive_dir = Path(directory)
 
     if not archive_dir.exists():
         return
 
     zip_files = [
-        p
-        for p in archive_dir.iterdir()
-        if p.is_file() and p.suffix.lower() == ".zip"
+        path
+        for path in archive_dir.iterdir()
+        if path.is_file()
+        and path.suffix.lower() == ".zip"
     ]
 
     if len(zip_files) <= num_artifacts_to_retain:
         return
 
     zip_files.sort(
-        key=lambda p: p.stat().st_mtime,
+        key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
 
-    files_to_delete = zip_files[num_artifacts_to_retain:]
+    files_to_delete = zip_files[
+        num_artifacts_to_retain:
+    ]
 
     if dry_run:
         for file_path in files_to_delete:
             print(f"would delete {file_path}")
+
         return
 
     for file_path in files_to_delete:
@@ -391,7 +556,7 @@ def parse_args():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="List archives without downloading.",
+        help="List archives without downloading or copying.",
     )
 
     return parser.parse_args()
@@ -401,7 +566,9 @@ def main() -> int:
     args = parse_args()
 
     try:
-        ssh_config, deployments = load_config(args.config)
+        ssh_config, deployments = load_config(
+            args.config
+        )
     except Exception as exc:
         print(
             f"ERROR loading config: {exc}",
@@ -427,6 +594,10 @@ def main() -> int:
 
     for deployment in deployments:
         try:
+            # ---------------------------------------------------------------
+            # Download latest remote archive
+            # ---------------------------------------------------------------
+
             success, message = download_latest_archive(
                 deployment=deployment,
                 ssh_config=ssh_config,
@@ -434,10 +605,16 @@ def main() -> int:
                 dry_run=args.dry_run,
             )
 
-            print(f"{deployment.name}: {message}")
+            print(
+                f"{deployment.name}: {message}"
+            )
 
             if not success:
                 failures += 1
+
+            # ---------------------------------------------------------------
+            # Clean up downloaded archives
+            # ---------------------------------------------------------------
 
             cleanup_old_archives(
                 deployment.download_dir,
@@ -445,12 +622,41 @@ def main() -> int:
                 dry_run=args.dry_run,
             )
 
+            # ---------------------------------------------------------------
+            # Optional local copy
+            # ---------------------------------------------------------------
+
+            success, message = copy_latest_archive(
+                deployment=deployment,
+                dry_run=args.dry_run,
+            )
+
+            print(
+                f"{deployment.name}: {message}"
+            )
+
+            if not success:
+                failures += 1
+
+            # ---------------------------------------------------------------
+            # Clean up local copies
+            # ---------------------------------------------------------------
+
+            if deployment.local_copy_enabled:
+                cleanup_old_archives(
+                    deployment.copy_to_dir,
+                    deployment.local_copy_retention,
+                    dry_run=args.dry_run,
+                )
+
         except Exception as exc:
             failures += 1
+
             print(
                 f"{deployment.name}: ERROR: {exc}",
                 file=sys.stderr,
             )
+
             traceback.print_exc()
 
     return 0 if failures == 0 else 1
@@ -458,3 +664,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
