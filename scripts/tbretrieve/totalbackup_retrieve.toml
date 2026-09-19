@@ -17,6 +17,7 @@ local_copy_enabled = true
 copy_to_dir = "<path_local_copy_destination_1>"
 local_copy_retention = 5
 
+
 [[deployments]]
 name = "work"
 remote_dir = "<path_to_remote_dir_2>"
